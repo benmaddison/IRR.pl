@@ -18,3 +18,7 @@ nytprof.out
 *.o
 *.bs
 /_eumm/
+
+IRR.conf
+Run/IRR.pid
+Prefix-Lists/*

@@ -1,0 +1,29 @@
+my $config = {
+  debug => 0,
+  general => {
+    working_dir => '/var/IRR',
+    stdout => '>Log/IRR.log',
+    stderr => '>Log/IRR.log',
+    stdin => '</dev/null',
+    pid_file => 'Run/IRR.pid',
+  },
+  directories => {
+    'prefix-lists' => 'Prefix-Lists',
+  },
+  irr => {
+    host => 'whois.radb.net',
+  },
+  logging => {
+  },
+  routers => {
+    'router1' => [
+      'AS-WOLCOMM',
+      'AS37271',
+    ],
+    'router2' => [
+      'AS-WOLCOMM',
+      'AS37271',
+    ],
+  },
+};
+return $config;
