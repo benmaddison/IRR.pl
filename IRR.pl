@@ -9,8 +9,9 @@ use Module::Logger;
 use Module::RtConfig;
 
 my $me = 'IRR';
-open VER, '<', 'VERSION';
-my $ver = readline(VER); chomp $ver;
+open VERSION, '<', 'VERSION';
+my $ver = readline(VERSION); chomp $ver;
+close VERSION;
 my $config = Module::Configuration->new('IRR.conf') or die "Couldn't create config from file IRR.conf";
 my $logger = Module::Logger->new($config->logging());
 $logger->level($logger->LOG_NOTICE);
@@ -46,7 +47,7 @@ while ( $loop ) {
       }
     }
     # initialize RtConfig
-    my $rtconfig = Module::RtConfig->new();
+    my $rtconfig = Module::RtConfig->new($config->irr());
     my $types = ['aut-num', 'as-set', 'route-set'];
     for my $object (keys %$objects) {
       my $defaults = {ip => '0.0.0.0/0 le 32', ipv6 => '::/0 le 128'};
