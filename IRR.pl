@@ -15,7 +15,7 @@ my $ver = readline(VERSION); chomp $ver;
 close VERSION;
 my $config = Module::Configuration->new('IRR.conf') or die "Couldn't create config from file IRR.conf";
 my $logger = Module::Logger->new($config->logging());
-$logger->level($logger->LOG_NOTICE);
+$logger->level($logger->LOG_INFO);
 
 if ($config->debug()) {
   $logger->options('perror');
