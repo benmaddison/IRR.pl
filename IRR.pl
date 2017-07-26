@@ -1,12 +1,13 @@
 #!/usr/bin/perl
 #
+use lib '.';
 use strict;
 use warnings;
 use Module::Configuration;
 use Module::Process;
 use Module::Timer;
 use Module::Logger;
-use Module::RtConfig;
+use Module::Bgpq3;
 
 my $me = 'IRR';
 open VERSION, '<', 'VERSION';
@@ -17,8 +18,8 @@ my $logger = Module::Logger->new($config->logging());
 $logger->level($logger->LOG_NOTICE);
 
 if ($config->debug()) {
-  use Data::Dumper;
   $logger->options('perror');
+  $logger->level($logger->LOG_DEBUG);
 } else {
   my $pid = Module::Process::Daemonize($config->general());
   $logger->notice("MAIN: forked successfully PID: $pid");
@@ -46,55 +47,33 @@ while ( $loop ) {
         $objects->{$object}->{'routers'} += 1;
       }
     }
-    # initialize RtConfig
-    my $rtconfig = Module::RtConfig->new($config->irr());
-    my $types = ['aut-num', 'as-set', 'route-set'];
+    # initialize bgpq3
+    my $bgpq3 = Module::Bgpq3->new($config->irr());
+    my $afis = {
+      ipv4 => {ver => 4, max_len => 24, name => 'ip'},
+      ipv6 => {ver => 6, max_len => 48, name => 'ipv6'}
+    };
     for my $object (keys %$objects) {
-      my $defaults = {ip => '0.0.0.0/0 le 32', ipv6 => '::/0 le 128'};
-      if ($object =~ m/^AS37271:AS-CUSTOMERS:/i) {
-        $objects->{$object}->{'filters'} = {
-          ip => "afi ipv4.unicast ($object AND {0.0.0.0/0^8-24})",
-          ipv6 => "afi ipv6.unicast ($object AND {::/0^16-48})"
-        };
-      } elsif ($object =~ m/^AS37271:AS-PEERS:/i) {
-        $objects->{$object}->{'filters'} = {
-          ip => "afi ipv4.unicast ($object^+ AND {0.0.0.0/0^8-24})",
-          ipv6 => "afi ipv6.unicast ($object^+ AND {::/0^16-48})"
-        };
-      } else {
-        $objects->{$object}->{'filters'} = {
-          ip => "afi ipv4.unicast $object",
-          ipv6 => "afi ipv6.unicast $object"
-        };
+      my $strict = 1;
+      if ($object =~ m/^AS37271:AS-PEERS:/i) {
+        $strict = 0;
       }
       $logger->info("CHILD: building prefix-lists for $object");
       $objects->{$object}->{'prefix-list'} = "!\n";
-      for my $af (keys %{$objects->{$object}->{'filters'}}) {
+      for my $af (keys %$afis) {
         $logger->info("CHILD: processing routes for address-family $af");
-        my $prefixes = $rtconfig->prefixes($objects->{$object}->{'filters'}->{$af}, 1);
-        my $count = scalar @$prefixes;
-        $objects->{$object}->{'prefix-list'} .= "! address family $af: $count prefixes\n";
+        my $entries = $bgpq3->prefixList($object, $afis->{$af}->{'ver'}, $afis->{$af}->{'max_len'}, $strict);
+        my $count = scalar @$entries;
+        $objects->{$object}->{'prefix-list'} .= "! $object - address family $af: $count entries\n";
         if ($count) {
-          $objects->{$object}->{'prefix-list'} .= "no $af prefix-list $object\n";
-          $objects->{$object}->{'prefix-list'} .= "$af prefix-list $object description Built by $me-$ver at $now\n";
-          $logger->info("CHILD: have $count routes in address-family $af for object $object");
-          my $i = 0;
-          for my $p (@$prefixes) {
-            $i++;
-            my $seq = $i * 10;
-            if ($p->{'n'} eq $p->{'l'}) {
-              if ($p->{'m'} eq $p->{'l'}) {
-                $objects->{$object}->{'prefix-list'} .= "$af prefix-list $object seq $seq permit $p->{'p'}/$p->{'l'}\n";
-              } else {
-                $objects->{$object}->{'prefix-list'} .= "$af prefix-list $object seq $seq permit $p->{'p'}/$p->{'l'} le $p->{'m'}\n";
-              }
-            } else {
-              $objects->{$object}->{'prefix-list'} .= "$af prefix-list $object seq $seq permit $p->{'p'}/$p->{'l'} ge $p->{'n'} le $p->{'m'}\n";
-            }
+          $objects->{$object}->{'prefix-list'} .= "no $afis->{$af}->{'name'} prefix-list $object\n";
+          $objects->{$object}->{'prefix-list'} .= "$afis->{$af}->{'name'} prefix-list $object description Built by $me-$ver at $now\n";
+          $logger->info("CHILD: have $count entries in address-family $af for object $object");
+          for my $entry (@$entries) {
+            $objects->{$object}->{'prefix-list'} .= "$entry\n";
           }
         } else {
-          $logger->notice("CHILD: no prefixes found for $object in address-family $af");
-#          $objects->{$object}->{'prefix-list'} .= "$af prefix-list $object seq 10 deny $defaults->{$af}\n";
+          $logger->notice("CHILD: no entries found for $object in address-family $af");
         }
       }
     }
@@ -106,6 +85,7 @@ while ( $loop ) {
       for my $object (@{$routers->{$router}}) {
         print PL $objects->{$object}->{'prefix-list'};
       }
+      print PL "!\n";
       print PL "end\n";
       close PL;
       $logger->info("CHILD: finished writing prefix-list file for $router");
