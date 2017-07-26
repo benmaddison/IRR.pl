@@ -20,6 +20,6 @@ nytprof.out
 /_eumm/
 
 IRR.conf
-Run/IRR.pid
+Run/*
 Prefix-Lists/*
 Log/*
