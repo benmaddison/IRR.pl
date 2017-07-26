@@ -26,7 +26,7 @@ if ($config->debug()) {
 }
 
 my $loop = 1;
-my $frequency = 28800; # Hardcoded at 8 hours to prevent runtime config changes
+my $frequency = 3600; # Hardcoded at 1 hour to prevent runtime config changes
 my $timer = Module::Timer->new();
 $logger->info("MAIN: started at " . $timer->startstr());
 while ( $loop ) {
