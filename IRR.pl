@@ -22,7 +22,10 @@ if ($config->debug()) {
   $logger->level($logger->LOG_DEBUG);
 } else {
   die "this program should be run as root" unless $> == 0;
-  my $pid = Module::Process::Daemonize($config->general());
+  my $pid = Module::Process::Daemonize(
+    $config->general(),
+    $config->directories('run')
+  );
   $logger->notice("MAIN: forked successfully PID: $pid");
 }
 

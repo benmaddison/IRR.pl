@@ -5,16 +5,18 @@ use POSIX;
 
 sub Daemonize {
   my $config = shift;
+  my $pid_dir = shift;
   # get uid and gid
   $uid = getpwnam($config->{'user'}) or die "get uid failed: $!";
   $gid = getgrnam($config->{'group'}) or die "get gid failed: $!";
   # check that we are not already running
-  if (open(PID, "<$config->{'pid_file'}")) {
+  my $pid_file = "$pid_dir/IRR.pid";
+  if (open(PID, "<$pid_file")) {
     chomp(my $old_pid = <PID>);
     if (kill 0, $old_pid) {
       die "an instance is already running";
     } else {
-      unlink $config->{'pid_file'};
+      unlink $pid_file;
     }
     close PID;
   }
@@ -24,8 +26,8 @@ sub Daemonize {
   if ($pid < 0) {
     die "fork: $!";
   } elsif ($pid) {
-    open(PID, ">$config->{'pid_file'}")
-      or die "can't open $config->{'pid_file'} for write: $!";
+    open(PID, ">$pid_file")
+      or die "can't open $pid_file for write: $!";
     print PID $pid;
     close PID;
     exit 0;
