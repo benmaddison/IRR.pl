@@ -31,11 +31,7 @@ sub general {
 sub directories {
   my $self = shift;
   my $directory = shift;
-  if ($directory) {
-    return $self->{'config'}->{'directories'}->{$directory};
-  } else {
-    return values $self->{'config'}->{'directories'};
-  }
+  return $self->{'config'}->{'directories'}->{$directory};
 }
 
 sub irr {
