@@ -2,12 +2,12 @@ my $config = {
   debug => 0,
   general => {
     working_dir => '/var/IRR',
-    pid_file => 'Run/IRR.pid',
     user => 'irrpl',
     group => 'irrpl'
   },
   directories => {
     'prefix-lists' => 'Prefix-Lists',
+    'run' => 'Run'
   },
   irr => {
     host => 'whois.radb.net',
