@@ -21,6 +21,7 @@ if ($config->debug()) {
   $logger->options('perror');
   $logger->level($logger->LOG_DEBUG);
 } else {
+  die "this program should be run as root" unless $> == 0;
   my $pid = Module::Process::Daemonize($config->general());
   $logger->notice("MAIN: forked successfully PID: $pid");
 }
@@ -73,7 +74,7 @@ while ( $loop ) {
             $objects->{$object}->{'prefix-list'} .= "$entry\n";
           }
         } else {
-          $logger->notice("CHILD: no entries found for $object in address-family $af");
+          $logger->warning("CHILD: no entries found for $object in address-family $af");
         }
       }
     }
@@ -81,14 +82,17 @@ while ( $loop ) {
     for my $router (keys %$routers) {
       my $path = $config->directories('prefix-lists');
       $logger->info("CHILD: trying to open prefix-list file $path/$router");
-      open PL, '>', "$path/$router";
-      for my $object (@{$routers->{$router}}) {
-        print PL $objects->{$object}->{'prefix-list'};
+      if (open(PL, ">$path/$router")) {
+        for my $object (@{$routers->{$router}}) {
+          print PL $objects->{$object}->{'prefix-list'};
+        }
+        print PL "!\n";
+        print PL "end\n";
+        close PL;
+        $logger->info("CHILD: finished writing prefix-list file for $router");
+      } else {
+        $logger->err("CHILD: can't open $path/$router for read: $!");
       }
-      print PL "!\n";
-      print PL "end\n";
-      close PL;
-      $logger->info("CHILD: finished writing prefix-list file for $router");
     }
     exit 0;
   }
