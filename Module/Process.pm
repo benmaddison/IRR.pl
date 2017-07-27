@@ -34,14 +34,13 @@ sub Daemonize {
   umask 0;
   for my $f (0 .. (POSIX::sysconf (&POSIX::_SC_OPEN_MAX) || 1024))
     { POSIX::close $f }
+  # drop privileges
   POSIX::setgid($gid) or die "setgid: $!";
   POSIX::setuid($uid) or die "setuid: $!";
-  open(STDIN, "<$config->{'stdin'}")
-    or die "can't open $config->{'stdin'} for read: $!";
-  open (STDOUT, ">>$config->{'stdout'}")
-    or die "can't open $config->{'stdout'} for write: $!";
-  open (STDERR, ">>$config->{'stderr'}")
-    or die "can't open $config->{'stderr'} for write: $!";
+  # reopen stdin/stdout/stderr
+  open(STDIN, "</dev/null") or die "can't open /dev/null for read: $!";
+  open(STDOUT, ">/dev/null") or die "can't open /dev/null for write: $!";
+  open(STDERR, ">/dev/null") or die "can't open /dev/null for write: $!";
   return $$;
 }
 

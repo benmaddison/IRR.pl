@@ -2,10 +2,9 @@ my $config = {
   debug => 0,
   general => {
     working_dir => '/var/IRR',
-    stdout => '>Log/IRR.log',
-    stderr => '>Log/IRR.log',
-    stdin => '</dev/null',
     pid_file => 'Run/IRR.pid',
+    user => 'irrpl',
+    group => 'irrpl'
   },
   directories => {
     'prefix-lists' => 'Prefix-Lists',
